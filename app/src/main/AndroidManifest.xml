@@ -1,10 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.it10x.foodappgstav2">
 
-    <!-- Internet -->
+    <!-- ========================= -->
+    <!-- INTERNET (for LAN/WiFi printing) -->
+    <!-- ========================= -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Bluetooth (Android 11 and below) -->
+    <!-- ========================= -->
+    <!-- BLUETOOTH PERMISSIONS -->
+    <!-- ========================= -->
+    <!-- Legacy Bluetooth (Android 11 and below) -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -12,14 +18,19 @@
         android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
 
-    <!-- Bluetooth (Android 12+) -->
+    <!-- Modern Bluetooth (Android 12+) -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
 
-    <!-- ✅ USB Host support -->
-    <uses-feature android:name="android.hardware.usb.host" />
+    <!-- ========================= -->
+    <!-- USB HOST SUPPORT -->
+    <!-- ========================= -->
+    <!-- Optional hardware feature, app still works if device has no USB host -->
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -28,6 +39,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.foodappgsta">
 
+        <!-- ========================= -->
+        <!-- MAIN ACTIVITY -->
+        <!-- ========================= -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -36,20 +50,22 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-
             </intent-filter>
 
-            <!-- ✅ USB device attached -->
+            <!-- USB Device Attached -->
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
 
+            <!-- USB Device Filter -->
             <meta-data
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/usb_device_filter" />
         </activity>
 
-        <!-- ✅ USB permission receiver -->
+        <!-- ========================= -->
+        <!-- USB PERMISSION RECEIVER -->
+        <!-- ========================= -->
         <receiver
             android:name=".usb.UsbPermissionReceiver"
             android:exported="false">
@@ -57,9 +73,6 @@
                 <action android:name="com.it10x.foodappgstav2.USB_PERMISSION" />
             </intent-filter>
         </receiver>
-<!--        <receiver-->
-<!--            android:name=".usb.UsbPermissionReceiver"-->
-<!--            android:exported="false" />-->
 
     </application>
 </manifest>
