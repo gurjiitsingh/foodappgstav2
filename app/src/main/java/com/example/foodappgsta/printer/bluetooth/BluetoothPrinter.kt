@@ -35,7 +35,6 @@ object BluetoothPrinter {
             Status       : OK
             ----------------------------
             
-            
             """.trimIndent(),
             onResult
         )

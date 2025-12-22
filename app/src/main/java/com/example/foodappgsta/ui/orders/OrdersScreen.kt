@@ -16,9 +16,10 @@ import com.it10x.foodappgstav2.viewmodel.OrdersViewModelFactory
 @Composable
 
 fun OrdersScreen(
-    printerManager: PrinterManager
+    printerManager: PrinterManager,
+    realtimeOrdersViewModel: RealtimeOrdersViewModel
 ) {
-    val realtimeOrdersViewModel: RealtimeOrdersViewModel = viewModel()
+    val realtimeOrdersViewModel = realtimeOrdersViewModel  // use the passed instance
 
 
     // -----------------------------

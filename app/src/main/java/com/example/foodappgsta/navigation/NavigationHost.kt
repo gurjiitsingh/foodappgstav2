@@ -46,10 +46,10 @@ fun NavigationHost(
         }
 
         composable("orders") {
-
-            // ✅ OrdersScreen DOES NOT create RealtimeOrdersViewModel
-            // It RECEIVES the global one from MainActivity
-          //  OrdersScreen()
+            OrdersScreen(
+                printerManager = printerManager,
+                realtimeOrdersViewModel = realtimeOrdersViewModel
+            )
         }
 
         composable("products") {
