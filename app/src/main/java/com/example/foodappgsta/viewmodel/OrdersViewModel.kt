@@ -29,43 +29,32 @@ class OrdersViewModel(
     // -----------------------------
     // PRINT ORDER (KITCHEN + BILLING)
     // -----------------------------
-    fun printOrder(order: OrderMasterData) {
-        viewModelScope.launch {
+fun printOrder(order: OrderMasterData) {
+    viewModelScope.launch {
+        val items = repo.getOrderProducts(order.id)
 
-            val items = repo.getOrderProducts(order.id)
+        if (items.isEmpty()) {
+            Log.e("PRINT", "No items for order ${order.srno}")
+            return@launch
+        }
 
-            // 🧾 BILLING RECEIPT
-            val billingReceipt = buildBillingReceipt(order, items)
+        val billingReceipt = buildBillingReceipt(order, items)
+        val kitchenReceipt = buildKitchenReceipt(order, items)
 
-            // 🍳 KITCHEN SLIP
-            val kitchenReceipt = buildKitchenReceipt(order, items)
+        // ✅ KITCHEN
+        printerManager.printText(PrinterRole.KITCHEN, kitchenReceipt) { success ->
+            Log.d("PRINT", "Kitchen print success=$success for order ${order.srno}")
+        }
 
-            // ---- PRINT KITCHEN ----
-            printerManager.printText(
-                role = PrinterRole.KITCHEN,
-                text = kitchenReceipt
-            ) {
-//                success ->
-//                Log.d("PRINT", "Kitchen print: $success")
-            }
-
-            // ---- PRINT BILLING ----
-            printerManager.printText(
-                role = PrinterRole.BILLING,
-                text = billingReceipt
-            ) {
-//                success ->
-//                Log.d("PRINT", "Billing print: $success")
-            }
+        // ✅ BILLING
+        printerManager.printText(PrinterRole.BILLING, billingReceipt) { success ->
+            Log.d("PRINT", "Billing print success=$success for order ${order.srno}")
         }
     }
+}
 
-    private fun PrinterManager.printText(
-        role: PrinterRole,
-        text: String,
-        function: Any
-    ) {
-    }
+
+
 
 
     fun loadFirstPage() {

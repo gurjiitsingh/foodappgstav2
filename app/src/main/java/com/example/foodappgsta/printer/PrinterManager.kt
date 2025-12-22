@@ -3,6 +3,8 @@ package com.it10x.foodappgstav2.printer
 import android.content.Context
 import android.util.Log
 import com.it10x.foodappgstav2.data.PrinterConfig
+import com.it10x.foodappgstav2.data.PrinterPreferences
+import com.it10x.foodappgstav2.data.PrinterRole
 import com.it10x.foodappgstav2.data.PrinterType
 import com.it10x.foodappgstav2.printer.bluetooth.BluetoothPrinter
 import com.it10x.foodappgstav2.printer.lan.LanPrinter
@@ -12,23 +14,25 @@ class PrinterManager(
     private val context: Context
 ) {
 
-    /**
-     * Core printer test (already correct)
-     */
+    private val prefs by lazy { PrinterPreferences(context) }
+
+    // --------------------------------
+    // TEST PRINT (already OK)
+    // --------------------------------
     fun printTest(
         config: PrinterConfig,
         onResult: (Boolean) -> Unit
     ) {
         val roleLabel = config.role.name
+
         when (config.type) {
 
             PrinterType.BLUETOOTH -> {
-                Log.d("PRINT_BT", "Config BT address='${config.bluetoothAddress}'")
+                Log.d("PRINT_BT", "Test BT address='${config.bluetoothAddress}'")
                 if (config.bluetoothAddress.isBlank()) {
                     onResult(false)
                     return
                 }
-
                 BluetoothPrinter.printTest(
                     config.bluetoothAddress,
                     roleLabel,
@@ -41,7 +45,6 @@ class PrinterManager(
                     onResult(false)
                     return
                 }
-
                 LanPrinter.printTest(
                     config.ip,
                     config.port,
@@ -55,36 +58,86 @@ class PrinterManager(
                     onResult(false)
                     return
                 }
-
-                USBPrinter.printTest(
-                    context,
-                    device,
-                    onResult
-                )
+                USBPrinter.printTest(context, device, onResult)
             }
 
-            PrinterType.WIFI -> {
-                // future support
-                onResult(false)
-            }
+            PrinterType.WIFI -> onResult(false)
         }
     }
 
-    /**
-     * OPTIONAL helper for role-based usage
-     * (ViewModel will call this)
-     */
+    // --------------------------------
+    // REAL PRINT (USED BY BUTTON + AUTO)
+    // --------------------------------
+  fun printText(
+    role: PrinterRole,
+    text: String,
+    onResult: (Boolean) -> Unit = {}
+) {
+
+    val config = prefs.getPrinterConfig(role)
+    if (config == null) {
+        Log.e("PRINT", "No printer configured for role=$role")
+        onResult(false)
+        return
+    }
+
+    Log.d("PRINT", "Printing role=$role type=${config.type}")
+
+    when (config.type) {
+
+        PrinterType.BLUETOOTH -> {
+            if (config.bluetoothAddress.isBlank()) {
+                onResult(false)
+                return
+            }
+            BluetoothPrinter.printText(
+                config.bluetoothAddress,
+                text,
+                onResult
+            )
+        }
+
+        PrinterType.LAN -> {
+            if (config.ip.isBlank()) {
+                onResult(false)
+                return
+            }
+            LanPrinter.printText(
+                config.ip,
+                config.port,
+                text,
+                onResult
+            )
+        }
+
+        PrinterType.USB -> {
+            val device = config.usbDevice ?: run {
+                onResult(false)
+                return
+            }
+            USBPrinter.printText(
+                text,
+       onResult
+            )
+        }
+
+        PrinterType.WIFI -> onResult(false)
+    }
+}
+
+
+    // --------------------------------
+    // OPTIONAL
+    // --------------------------------
     fun printTestForRole(
         configProvider: () -> PrinterConfig?,
         onResult: (Boolean) -> Unit
     ) {
         val config = configProvider()
-
         if (config == null) {
             onResult(false)
             return
         }
-
         printTest(config, onResult)
     }
 }

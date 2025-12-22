@@ -1,10 +1,16 @@
 package com.it10x.foodappgstav2.data
 
 import android.content.Context
+import android.hardware.usb.UsbManager
+import com.it10x.foodappgstav2.data.PrinterConfig
 
-class PrinterPreferences(context: Context) {
+
+class PrinterPreferences(
+    private val context: Context
+) {
 
     private val prefs = context.getSharedPreferences("printer_prefs", Context.MODE_PRIVATE)
+
 
     // -------------------------
     // PRINTER TYPE
@@ -106,4 +112,62 @@ class PrinterPreferences(context: Context) {
     fun clear() {
         prefs.edit().clear().apply()
     }
+
+// -------------------------
+// COMPLETE PRINTER CONFIG (USED BY PRINTING)
+// -------------------------
+fun getPrinterConfig(role: PrinterRole): PrinterConfig? {
+
+    val type = getPrinterType(role)
+
+    return when (type) {
+
+        PrinterType.BLUETOOTH -> {
+            val address = getBluetoothPrinterAddress(role)
+            if (address.isBlank()) return null
+
+            PrinterConfig(
+                type = PrinterType.BLUETOOTH,
+                bluetoothAddress = address,
+                role = role
+            )
+        }
+
+        PrinterType.LAN -> {
+            val ip = getLanPrinterIP(role)
+            if (ip.isBlank()) return null
+
+            PrinterConfig(
+                type = PrinterType.LAN,
+                ip = ip,
+                port = getLanPrinterPort(role),
+                role = role
+            )
+        }
+
+        PrinterType.USB -> {
+            val deviceId = getUSBPrinterId(role)
+            if (deviceId == -1) return null
+
+            val usbManager =
+                context.getSystemService(Context.USB_SERVICE) as UsbManager
+
+            val device = usbManager.deviceList.values.firstOrNull {
+                it.deviceId == deviceId
+            } ?: return null
+
+            PrinterConfig(
+                type = PrinterType.USB,
+                usbDevice = device,
+                role = role
+            )
+        }
+
+        PrinterType.WIFI -> null
+    }
+}
+
+
+
+
 }
