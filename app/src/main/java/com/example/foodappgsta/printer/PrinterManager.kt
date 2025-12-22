@@ -1,6 +1,7 @@
 package com.it10x.foodappgstav2.printer
 
 import android.content.Context
+import android.util.Log
 import com.it10x.foodappgstav2.data.PrinterConfig
 import com.it10x.foodappgstav2.data.PrinterType
 import com.it10x.foodappgstav2.printer.bluetooth.BluetoothPrinter
@@ -22,6 +23,7 @@ class PrinterManager(
         when (config.type) {
 
             PrinterType.BLUETOOTH -> {
+                Log.d("PRINT_BT", "Config BT address='${config.bluetoothAddress}'")
                 if (config.bluetoothAddress.isBlank()) {
                     onResult(false)
                     return

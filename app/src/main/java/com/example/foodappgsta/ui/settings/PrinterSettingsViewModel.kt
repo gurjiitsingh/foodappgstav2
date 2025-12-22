@@ -62,10 +62,14 @@ fun updatePrinterType(role: PrinterRole, type: PrinterType) {
     printerTypeMap[role]?.value = type
     prefs.savePrinterType(role, type)  // ✅ use savePrinterType instead of setPrinterType
 }
-    fun updateBluetoothPrinter(role: PrinterRole, name: String) {
-        btNameMap[role]?.value = name
-        prefs.setBluetoothPrinterName(role, name)
-    }
+  fun updateBluetoothPrinter(
+    role: PrinterRole,
+    name: String,
+    address: String
+) {
+    btNameMap[role]?.value = name
+    prefs.saveBluetoothPrinter(role, name, address)
+}
 
     fun updateUSBPrinter(role: PrinterRole, device: UsbDevice?) {
         selectedUSBDeviceMap[role]?.value = device

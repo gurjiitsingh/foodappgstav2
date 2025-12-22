@@ -15,6 +15,6 @@ class PrinterSettingsViewModelFactory(
             @Suppress("UNCHECKED_CAST")
             return PrinterSettingsViewModel(prefs, printerManager) as T
         }
-        throw IllegalArgumentException("Unknown ViewModel")
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
