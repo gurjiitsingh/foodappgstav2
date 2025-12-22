@@ -24,7 +24,7 @@ fun NavigationHost(
     printerPreferences: PrinterPreferences,
     realtimeOrdersViewModel: RealtimeOrdersViewModel,
     paddingValues: PaddingValues = PaddingValues(),
-    onSavePrinterSettings: () -> Unit = {}   // ✅ ADD THIS
+    onSavePrinterSettings: () -> Unit = {}
 ) {
 
     val printerSettingsViewModel: PrinterSettingsViewModel = viewModel(
@@ -34,12 +34,16 @@ fun NavigationHost(
         )
     )
 
+    // Use a single OrdersViewModel for all orders screen
+    val ordersViewModel: OrdersViewModel = viewModel(
+        factory = OrdersViewModelFactory(printerManager)
+    )
+
     NavHost(
         navController = navController,
         startDestination = "new_order",
         modifier = Modifier.padding(paddingValues)
     ) {
-
 
         composable("new_order") {
             Text("New Order Screen (empty for now)")
@@ -48,31 +52,20 @@ fun NavigationHost(
         composable("orders") {
             OrdersScreen(
                 printerManager = printerManager,
+                ordersViewModel = ordersViewModel,        // ✅ pass same instance
                 realtimeOrdersViewModel = realtimeOrdersViewModel
             )
         }
 
-        composable("products") {
-            Text("Products Screen (empty for now)")
-        }
+        composable("products") { Text("Products Screen (empty for now)") }
+        composable("categories") { Text("Categories Screen (empty for now)") }
 
-        composable("categories") {
-            Text("Categories Screen (empty for now)")
-        }
-
-        // -----------------------------
-        // PRINTER SETTINGS
-        // -----------------------------
-
+        // --- Printer Settings ---
         composable("printer_role_selection") {
             PrinterRoleSelectionScreen(
                 prefs = printerPreferences,
-                onBillingClick = {
-                    navController.navigate("printer_settings/BILLING")
-                },
-                onKitchenClick = {
-                    navController.navigate("printer_settings/KITCHEN")
-                }
+                onBillingClick = { navController.navigate("printer_settings/BILLING") },
+                onKitchenClick = { navController.navigate("printer_settings/KITCHEN") }
             )
         }
 
@@ -80,62 +73,37 @@ fun NavigationHost(
             "printer_settings/{role}",
             arguments = listOf(navArgument("role") { type = NavType.StringType })
         ) { backStackEntry ->
-
-            val role = PrinterRole.valueOf(
-                backStackEntry.arguments!!.getString("role")!!
-            )
-
+            val role = PrinterRole.valueOf(backStackEntry.arguments!!.getString("role")!!)
             PrinterSettingsScreen(
                 viewModel = printerSettingsViewModel,
                 prefs = printerPreferences,
                 role = role,
-
                 onSave = {
                     onSavePrinterSettings()
                     navController.popBackStack()
                 },
-
-                onBack = {
-                    navController.popBackStack()
-                },
-
-                onBluetoothSelected = {
-                    navController.navigate("bluetooth_devices/${role.name}")
-                },
-
-                onUSBSelected = {
-                    navController.navigate("usb_devices/${role.name}")
-                },
-
-                onLanSelected = {
-                    navController.navigate("lan_printer_settings/${role.name}")
-                }
+                onBack = { navController.popBackStack() },
+                onBluetoothSelected = { navController.navigate("bluetooth_devices/${role.name}") },
+                onUSBSelected = { navController.navigate("usb_devices/${role.name}") },
+                onLanSelected = { navController.navigate("lan_printer_settings/${role.name}") }
             )
-
         }
 
-// ================= LAN PRINTER =================
         composable("lan_printer_settings/{role}") { backStackEntry ->
-            val role = PrinterRole.valueOf(
-                backStackEntry.arguments!!.getString("role")!!
-            )
-
+            val role = PrinterRole.valueOf(backStackEntry.arguments!!.getString("role")!!)
             LanPrinterSettingsScreen(
                 viewModel = printerSettingsViewModel,
                 role = role,
                 onBack = { navController.popBackStack() }
             )
         }
+
         composable("bluetooth_devices/{role}") {
-            BluetoothDeviceScreen(
-                role = PrinterRole.valueOf(it.arguments!!.getString("role")!!)
-            )
+            BluetoothDeviceScreen(role = PrinterRole.valueOf(it.arguments!!.getString("role")!!))
         }
 
         composable("usb_devices/{role}") {
-            USBPrinterScreen(
-                role = PrinterRole.valueOf(it.arguments!!.getString("role")!!)
-            )
+            USBPrinterScreen(role = PrinterRole.valueOf(it.arguments!!.getString("role")!!))
         }
     }
 }
