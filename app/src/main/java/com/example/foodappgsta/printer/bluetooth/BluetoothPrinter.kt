@@ -17,7 +17,7 @@ object BluetoothPrinter {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     // =============================
-    // TEST PRINT (same as LAN)
+    // TEST PRINT
     // =============================
     fun printTest(
         mac: String,
@@ -35,13 +35,14 @@ object BluetoothPrinter {
             Status       : OK
             ----------------------------
             
+            
             """.trimIndent(),
             onResult
         )
     }
 
     // =============================
-    // CORE PRINT
+    // CORE PRINT (ORDER / AUTO)
     // =============================
     fun printText(
         mac: String,
@@ -50,7 +51,6 @@ object BluetoothPrinter {
     ) {
         Thread {
             var output: OutputStream? = null
-
             try {
                 val adapter = BluetoothAdapter.getDefaultAdapter()
                     ?: throw IllegalStateException("Bluetooth not supported")
@@ -59,28 +59,30 @@ object BluetoothPrinter {
                     throw IllegalStateException("Bluetooth is OFF")
                 }
 
-                Log.d(TAG, "Printing to MAC = $mac")
-
                 val device = adapter.getRemoteDevice(mac)
-
-                val socket = try {
-                    device.createRfcommSocketToServiceRecord(SPP_UUID)
-                } catch (se: SecurityException) {
-                    Log.e(TAG, "Missing BLUETOOTH_CONNECT permission", se)
-                    throw se
-                }
+                val socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
 
                 adapter.cancelDiscovery()
                 socket.connect()
 
                 output = socket.outputStream
 
-                // ESC/POS init
+                // ✅ ESC/POS INIT (ONCE)
                 output.write(byteArrayOf(0x1B, 0x40))
-                output.write(text.toByteArray(Charsets.UTF_8))
+
+                // ✅ IMPORTANT: convert LF → CRLF
+                val safeText = text
+                    .replace("\n", "\r\n")
+                    .toByteArray(Charsets.US_ASCII)
+
+                output.write(safeText)
+
+                // ✅ FEED PAPER
                 output.write(byteArrayOf(0x0A, 0x0A, 0x0A))
 
                 output.flush()
+
+                Thread.sleep(300)
                 socket.close()
 
                 mainHandler.post { onResult(true) }
@@ -88,11 +90,9 @@ object BluetoothPrinter {
             } catch (e: Exception) {
                 Log.e(TAG, "Bluetooth print failed", e)
                 mainHandler.post { onResult(false) }
-
             } finally {
                 try { output?.close() } catch (_: Exception) {}
             }
         }.start()
     }
-
 }

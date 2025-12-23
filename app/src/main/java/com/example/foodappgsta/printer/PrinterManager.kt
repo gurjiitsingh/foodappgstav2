@@ -82,7 +82,7 @@ class PrinterManager(
     }
 
     Log.d("PRINT", "Printing role=$role type=${config.type}")
-
+    //  var  text1="kljkl"
     when (config.type) {
 
         PrinterType.BLUETOOTH -> {
@@ -119,6 +119,14 @@ class PrinterManager(
                 text,
        onResult
             )
+
+//USBPrinter.printText(
+//    context,
+//    device,
+//    text,
+//    onResult
+//)
+
         }
 
         PrinterType.WIFI -> onResult(false)

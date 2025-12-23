@@ -41,15 +41,19 @@ fun printOrder(order: OrderMasterData) {
         val billingReceipt = buildBillingReceipt(order, items)
         val kitchenReceipt = buildKitchenReceipt(order, items)
 
-        // ✅ KITCHEN
-        printerManager.printText(PrinterRole.KITCHEN, kitchenReceipt) { success ->
-            Log.d("PRINT", "Kitchen print success=$success for order ${order.srno}")
-        }
 
         // ✅ BILLING
         printerManager.printText(PrinterRole.BILLING, billingReceipt) { success ->
             Log.d("PRINT", "Billing print success=$success for order ${order.srno}")
         }
+
+        // ✅ KITCHEN
+//        printerManager.printText(PrinterRole.KITCHEN, kitchenReceipt) { success ->
+//            Log.d("PRINT", "Kitchen print success=$success for order ${order.srno}")
+//
+//        }
+
+
     }
 }
 
@@ -82,17 +86,76 @@ fun printOrder(order: OrderMasterData) {
     }
 
     // -----------------------------
-    // BILLING RECEIPT (FULL)
-    // -----------------------------
+// BILLING RECEIPT (SAFE FORMAT)
+// -----------------------------
+
     private fun buildBillingReceipt(
         order: OrderMasterData,
         items: List<OrderProductData>
     ): String {
-
+//THIS FUNCITON FROM KITCHEN
         val alignLeft = "\u001B\u0061\u0000"
 
-        val itemsBlock = items.joinToString("\n") { item ->
-            "${item.quantity}  ${item.name.take(16).padEnd(16)}  ${formatAmount(toDouble(item.itemSubtotal))}"
+        val itemsBlock = if (items.isEmpty()) {
+            "No items"
+        } else {
+            items.joinToString("\n") { item ->
+                "${item.quantity.toString().padEnd(3)} ${item.name}"
+            }
+        }
+
+        return buildString {
+            append(alignLeft)
+            append(
+                """
+******* BILL *******
+
+Order No : ${order.srno}
+------------------------
+$itemsBlock
+------------------------
+
+
+""".trimIndent()
+            )
+        }
+    }
+
+    private fun buildBillingReceipt2(
+        order: OrderMasterData,
+        items: List<OrderProductData>
+    ): String {
+
+        // ESC/POS force left align
+        val alignLeft = "\u001B\u0061\u0000"
+
+        val orderNoLine =
+            "Order No : ${btSafe(order.srno.toString(), 12)}"
+
+        val customerLine =
+            "Customer : ${btSafe(order.customerName.ifBlank { "Walk-in" }, 18)}"
+
+        val itemsBlock = if (items.isEmpty()) {
+            "No items found"
+        } else {
+            val header =
+                "QTY".padEnd(4) +
+                        "ITEM".padEnd(16) +
+                        "PRICE".padStart(6) +
+                        "TOTAL".padStart(6)
+
+            val divider = "-".repeat(32)
+
+            val lines = items.joinToString("\n") { item ->
+                val qty = item.quantity.toString().padEnd  (4)
+                val name = item.name.take(16).padEnd(16)
+                val price = formatAmount(toDouble(item.price)).padStart(6)
+                val total = formatAmount(toDouble(item.itemSubtotal)).padStart(6)
+
+                qty + name + price + total
+            }
+
+            "$header\n$divider\n$lines"
         }
 
         return buildString {
@@ -102,24 +165,62 @@ fun printOrder(order: OrderMasterData) {
 ------------------------------
 FOOD APP
 ------------------------------
-Order No : ${order.srno}
-Customer : ${order.customerName.ifBlank { "Walk-in" }}
+
+
 ------------------------------
-$itemsBlock
+
 ------------------------------
-TOTAL : ${formatAmount(toDouble(order.grandTotal))}
+
 ------------------------------
 Thank You!
-                
+
 
 """.trimIndent()
             )
         }
     }
 
+    private fun buildBillingReceipt1(
+        order: OrderMasterData,
+        items: List<OrderProductData>
+    ): String {
+
+        // ESC/POS left align
+        val alignLeft = "\u001B\u0061\u0000"
+
+        return buildString {
+            append(alignLeft)
+            append(
+                """
+------------------------------
+FOOD APP TEST
+------------------------------
+Order No : 123
+Customer : TEST
+------------------------------
+QTY ITEM            PRICE TOTAL
+--------------------------------
+1   Burger          100.00 100.00
+2   Fries            50.00 100.00
+--------------------------------
+TOTAL : 200.00
+------------------------------
+Thank You!
+
+
+""".trimIndent()
+            )
+        }
+    }
+
+
+
+
+
+
     // -----------------------------
-    // KITCHEN SLIP (ITEMS ONLY)
-    // -----------------------------
+// KITCHEN SLIP (SAFE FORMAT)
+// -----------------------------
     private fun buildKitchenReceipt(
         order: OrderMasterData,
         items: List<OrderProductData>
@@ -127,8 +228,12 @@ Thank You!
 
         val alignLeft = "\u001B\u0061\u0000"
 
-        val itemsBlock = items.joinToString("\n") { item ->
-            "${item.quantity} x ${item.name}"
+        val itemsBlock = if (items.isEmpty()) {
+            "No items"
+        } else {
+            items.joinToString("\n") { item ->
+                "${item.quantity.toString().padEnd(3)} ${item.name}"
+            }
         }
 
         return buildString {
@@ -147,6 +252,7 @@ $itemsBlock
         }
     }
 
+
     // -----------------------------
     // HELPERS
     // -----------------------------
@@ -162,4 +268,11 @@ $itemsBlock
             is String -> value.toDoubleOrNull() ?: 0.0
             else -> 0.0
         }
+
+    private fun btSafe(text: String, max: Int): String {
+        return text
+            .replace(Regex("[^A-Za-z0-9 ]"), "") // remove Unicode
+            .trim()
+            .take(max)
+    }
 }

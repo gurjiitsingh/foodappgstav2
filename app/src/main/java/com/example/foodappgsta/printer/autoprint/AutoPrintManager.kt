@@ -16,45 +16,47 @@ class AutoPrintManager(
 
     fun onNewOrder(order: OrderMasterData) {
 
+        Log.e("AUTO_PRINT", "🔥 onNewOrder called srno=${order.srno}")
+
         if (order.printed == true) {
-            Log.d("AUTO_PRINT", "Order ${order.srno} already printed")
+            Log.d("AUTO_PRINT", "⛔ Already printed srno=${order.srno}")
             return
         }
 
         CoroutineScope(Dispatchers.IO).launch {
-             delay(15000) // wait for Firestore writes
+
             try {
+                Log.d("AUTO_PRINT", "⏳ Waiting for items srno=${order.srno}")
 
-                // ⏳ WAIT until order items exist (CRITICAL FIX)
-                var attempts = 0
-                var hasItems = false
+                var itemsReady = false
 
-                while (attempts < 5 && !hasItems) {
+                // ✅ Wait max 10 seconds only
+                repeat(10) { attempt ->
                     val items = ordersRepository.getOrderProducts(order.id)
                     if (items.isNotEmpty()) {
-                        hasItems = true
-                        break
+                        Log.d("AUTO_PRINT", "✅ Items found at attempt=$attempt")
+                        itemsReady = true
+                        return@repeat
                     }
-                    delay(7000) // wait for Firestore writes
-                    attempts++
-                    kotlinx.coroutines.delay(500) // wait 0.5 sec
+                    delay(1000)
                 }
 
-                if (!hasItems) {
-                    Log.e("AUTO_PRINT", "No items found for order ${order.srno}")
+                if (!itemsReady) {
+                    Log.e("AUTO_PRINT", "❌ No items found srno=${order.srno}")
                     return@launch
                 }
 
-                // ✅ Now safe to print
+                // ✅ PRINT
+                Log.e("AUTO_PRINT", "🖨 Printing srno=${order.srno}")
                 ordersViewModel.printOrder(order)
 
-                // ✅ Mark as printed
+                // ✅ MARK PRINTED AFTER PRINT CALL
                 ordersRepository.markOrderAsPrinted(order.id)
 
-                Log.d("AUTO_PRINT", "Order ${order.srno} auto-printed")
+                Log.e("AUTO_PRINT", "✅ Auto print DONE srno=${order.srno}")
 
             } catch (e: Exception) {
-                Log.e("AUTO_PRINT", "Auto print failed", e)
+                Log.e("AUTO_PRINT", "❌ Auto print failed", e)
             }
         }
     }
