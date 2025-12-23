@@ -93,27 +93,59 @@ fun printOrder(order: OrderMasterData) {
         order: OrderMasterData,
         items: List<OrderProductData>
     ): String {
-//THIS FUNCITON FROM KITCHEN
+        // ESC/POS force left align
         val alignLeft = "\u001B\u0061\u0000"
 
         val itemsBlock = if (items.isEmpty()) {
-            "No items"
+            "No items found"
         } else {
-            items.joinToString("\n") { item ->
-                "${item.quantity.toString().padEnd(3)} ${item.name}"
+            val header =
+                "QTY".padEnd(5) +
+                        "ITEM".take(12).padEnd(12) +
+                        "PRICE".padStart(7) +
+                        "TOTAL".padStart(6)
+
+            val divider = "-".repeat(32)
+
+            val lines = items.joinToString("\n") { item ->
+                val qty = item.quantity.toString().padEnd(2)
+                val name = item.name.take(17).padEnd(17)
+                val price = formatAmount(toDouble(item.price)).padStart(6)//right align
+                // val price = formatAmount(toDouble(item.price)).padEnd(6)//left align
+                val total = formatAmount(toDouble(item.itemSubtotal)).padStart(7)
+
+                qty +  name +  price + total
             }
+
+            "$header\n$divider\n$lines"
         }
+
+        // Build discount block dynamically
+        val discountBlock = buildDiscountBlock(order)
 
         return buildString {
             append(alignLeft)
             append(
                 """
-******* BILL *******
-
+------------------------------
+FOOD APP 
+------------------------------
 Order No : ${order.srno}
-------------------------
+Customer : ${order.customerName.ifBlank { "Walk-in" }}
+Date     : ${order.time}
+------------------------------
 $itemsBlock
-------------------------
+------------------------------
+${totalLine("Item Total", toDouble(order.itemTotal))}
+${totalLine("Delivery Cost", toDouble(order.deliveryCost))}
+$discountBlock
+${totalLine("Sub Total", toDouble(order.subTotal))}
+${totalLine("GST ", toDouble(order.totalTax))}
+
+------------------------------
+${totalLine("GRAND TOTAL", toDouble(order.grandTotal))}
+------------------------------
+Thank You!
 
 
 """.trimIndent()
@@ -253,9 +285,16 @@ $itemsBlock
     }
 
 
+
     // -----------------------------
     // HELPERS
     // -----------------------------
+    private fun totalLine(label: String, value: Double): String {
+        if (value == 0.0) return "" // skip zero values
+        val left = label.padEnd(14)
+        val right = formatAmount(value).padStart(18)
+        return left + right
+    }
     private fun formatAmount(value: Double?): String =
         "%.2f".format(value ?: 0.0)
 
@@ -274,5 +313,20 @@ $itemsBlock
             .replace(Regex("[^A-Za-z0-9 ]"), "") // remove Unicode
             .trim()
             .take(max)
+    }
+
+    // -----------------------------
+    // DISCOUNT BLOCK
+    // -----------------------------
+    private fun buildDiscountBlock(order: OrderMasterData): String {
+        val pickup = toDouble(order.calculatedPickUpDiscountL)
+        val flat = toDouble(order.flatDiscount)
+        val coupon = toDouble(order.calCouponDiscount)
+
+        return buildString {
+            if (pickup > 0) appendLine(totalLine("Pickup Dis", pickup))
+            if (flat > 0) appendLine(totalLine("Flat Dis", flat))
+            if (coupon > 0) appendLine(totalLine("Coupon Dis", coupon))
+        }
     }
 }
